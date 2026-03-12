@@ -13,11 +13,25 @@ if(SPIP_BUILD_TESTS)
   )
   target_link_libraries(spip_test_pip PRIVATE spip)
   add_test(NAME spip_test_pip COMMAND spip_test_pip)
+
+  add_executable(spip_test_psm_compile
+  tests/test_psm_compile.cpp
+  )
+  target_link_libraries(spip_test_psm_compile PRIVATE spip)
+  add_test(NAME spip_test_psm_compile COMMAND spip_test_psm_compile)
+
+  add_executable(spip_test_quadruple3d
+  tests/test_quadruple3d_basic.cpp
+  )
+  target_link_libraries(spip_test_quadruple3d PRIVATE spip)
+  add_test(NAME spip_test_quadruple3d COMMAND spip_test_quadruple3d)
 endif()
 
 add_library(spip STATIC
   third_party/predicates.c
+  third_party/geogram_psm/MultiPrecision_psm.cpp
   src/algorithms/point_in_polygon_sphere.cpp
+  src/predicates/quadruple3d_exact.cpp
 )
 
 target_compile_features(spip PUBLIC cxx_std_17)
@@ -28,6 +42,7 @@ target_include_directories(spip
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/third_party>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/third_party/geogram_psm>
     $<INSTALL_INTERFACE:include>
 )
 
