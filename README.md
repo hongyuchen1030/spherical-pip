@@ -19,6 +19,13 @@ The library classifies a query point as:
       * **EFT:** Compensated arithmetic based on Error-Free Transformations.
   * **Header-Only:** Designed for "correctness first" with easy integration.
 
+This repository contains the implementation. The associated paper discusses the
+algorithms in more detail and provides broader algorithmic context:
+
+- Chen, H. (2026). Accurate and Robust Algorithms for Spherical Polygon
+  Operations. EGUsphere preprint.
+  https://egusphere.copernicus.org/preprints/2026/egusphere-2026-636/
+
 -----
 
 ## 1\. Installation & Quick Start
@@ -118,25 +125,49 @@ All of these combinations are explicitly tested in:
 
 ## 2\. Core Algorithm (Spherical PIP)
 
-The test is parity-based. Given a query point `q`, a ray endpoint `R`, and an edge `AB` (minor great-circle arc), the algorithm counts intersections with the arc `qR`. An odd count indicates `Inside`.
+The ray endpoint `R` is normally chosen as a perturbed antipode of `q`, so the ray is geometrically well separated from the query.
 
-### Orientation Logic
+For each polygon edge `AB`, the crossing logic uses four orientation signs:
 
-The implementation uses four orientation signs:
+- `s_qR_A = orient(q, R, A)`
+- `s_qR_B = orient(q, R, B)`
+- `s_AB_q = orient(A, B, q)`
+- `s_AB_R = orient(A, B, R)`
 
-  - $s_{qR,A} = \text{orient}(q, R, A)$
-  - $s_{qR,B} = \text{orient}(q, R, B)$
-  - $s_{AB,q} = \text{orient}(A, B, q)$
-  - $s_{AB,R} = \text{orient}(A, B, R)$
+In the nondegenerate case, the implementation uses the strict 4-sign crossing theorem: the arcs `qR` and `AB` cross if and only if the endpoint orientations are strictly separated on both supporting great circles. In code, this is the branch where all four signs are nonzero and the sign pattern is checked directly.
 
-In nondegenerate cases, the **4-sign crossing theorem** is applied. Boundary cases (`OnVertex`/`OnEdge`) are handled explicitly before parity counting.
+When `s_qR_A` or `s_qR_B` is zero in the non-global-ID mode, the algorithm falls back to a half-open convention rather than symbolic perturbation. This is a deterministic local tie-breaking rule for degenerate ray/vertex configurations and avoids double counting.
 
-### Ray Endpoint ($R$) Policy
+Boundary handling is performed before parity counting:
 
-`R` is a perturbed antipode of `q`.
+- if `q` exactly matches a polygon vertex, return `OnVertex`
+- if `q` lies on a polygon edge minor arc, return `OnEdge`
 
-  * **Design Decision:** If any edge yields $s_{AB,R} == 0$, the algorithm throws an error rather than retrying, ensuring path-independent classification.
-  * **Recommended Fix:** Split the polygon into smaller segments or use **Tier 1 Global-ID mode**.
+The ray endpoint `R` is constructed as a perturbed antipode of `q`:
+
+- start from `-q`
+- perturb the least dominant coordinate
+- renormalize to the sphere
+
+The perturbation is needed to avoid the most obvious antipodal degeneracies.
+
+Design decision:
+
+If any polygon edge yields
+
+`s_AB_R == 0`
+
+then the algorithm throws an error.
+
+Interpretation:
+
+- this typically indicates a polygon that is too large, close to hemispherical, or otherwise poorly separated from the ray construction
+- retrying with another `R` is intentionally not used, because that would make the classification rule path-dependent and harder to reason about
+
+What users should do instead:
+
+- split the polygon into smaller pieces, or
+- use Tier 1 global-ID mode so endpoint degeneracies can be resolved symbolically where applicable
 
 -----
 
@@ -182,7 +213,7 @@ If the library must assign IDs internally (Tiers 2/3):
 
 ## 7\. Tests and Visualization
 
-Detailed tests are located in [`tests/`](https://www.google.com/search?q=%5Bhttps://github.com/hongyuchen1030/Spherical-Point-In-Polygon/tree/main/tests%5D\(https://github.com/hongyuchen1030/Spherical-Point-In-Polygon/tree/main/tests\)).
+Detailed tests are located in [`tests/`](tests/).
 
   * **Unit Tests:** Covers both pipelines and all robustness tiers.
   * **Visualization:** `tests/test_pip_complicated_visualization.nb` (Mathematica) visualizes the polygon, query points, and great-circle arcs for complex cases.
@@ -191,7 +222,7 @@ Detailed tests are located in [`tests/`](https://www.google.com/search?q=%5Bhttp
 
 ## 8. References and Acknowledgements
 
-### 11.1 Associated Paper
+### 8.1 Associated Paper
 
 The algorithms implemented in this repository are discussed in detail in:
 
@@ -202,7 +233,7 @@ The algorithms implemented in this repository are discussed in detail in:
 This repository contains the implementation. The paper provides the full
 algorithmic context and derivations.
 
-### 11.2 Robust Geometric Predicates (Shewchuk)
+### 8.2 Robust Geometric Predicates (Shewchuk)
 
 The robust pipeline uses Jonathan Shewchuk's adaptive predicates for core
 orientation-sign evaluation, including the vendored `predicates.c`
@@ -217,7 +248,7 @@ Notes:
 - the vendored `predicates.c` is public domain
 - see [third_party/LICENSE_shewchuk.txt](third_party/LICENSE_shewchuk.txt)
 
-### 11.3 Simulation of Simplicity (SoS)
+### 8.3 Simulation of Simplicity (SoS)
 
 Simulation of Simplicity is used for global-ID degeneracy resolution in the
 Tier 1, Tier 2, and Tier 3 global-ID paths.
@@ -227,7 +258,7 @@ Tier 1, Tier 2, and Tier 3 global-ID paths.
   Transactions on Graphics, 9(1), 66-104.
   https://doi.org/10.1145/77635.77639
 
-### 11.4 Half-Open Rule
+### 8.4 Half-Open Rule
 
 The non-global-ID branch uses a deterministic half-open convention for
 ray-vertex tie-breaking.
@@ -244,7 +275,7 @@ Important note:
 - the rule is used as deterministic tie-breaking in non-global-ID mode
 - for full robustness, users should use Tier 1 global-ID mode
 
-### 11.5 Geogram Multiprecision
+### 8.5 Geogram Multiprecision
 
 Geogram multiprecision components are used as the exact fallback for predicate
 evaluation in the robust pipeline.
@@ -253,26 +284,30 @@ evaluation in the robust pipeline.
 - Geogram PCK-related components included in the vendored code layout used by
   this project
 
-### 11.6 Error-Free Transformations (EFT)
+### 8.6 Error-Free Transformations (EFT)
 
 The EFT pipeline is informed by the compensated-arithmetic literature used for
 accurate determinant and sign evaluation.
 
-- Ogita, T., Rump, S. M., & Oishi, S. (2005). Accurate Sum and Dot Product.
-  SIAM Journal on Scientific Computing, 26(6), 1955-1988.
-  https://doi.org/10.1137/030601818
-- Additional reference: https://arxiv.org/abs/2510.09892
-- Based on: Kahan, W. (1996). Lecture Notes on the Status of IEEE 754.
+- Chen, H., Ullrich, P. A., and Panetta, J. (2025):
+Fast and Accurate Intersections on a Sphere,
+arXiv:2510.09892
+https://arxiv.org/abs/2510.09892
+- Ogita, T., Rump, S. M., and Oishi, S. (2005):
+Accurate sum and dot product,
+SIAM J. Sci. Comput., 26(6), 1955–1988
+https://doi.org/10.1137/030601818
+- Also based on: Kahan, W. (1996). Lecture Notes on the Status of IEEE 754.
   http://www.cs.berkeley.edu/~wkahan/ieee754status/IEEE754.PDF
 
-### 11.7 Linear Algebra Backend
+### 8.7 Linear Algebra Backend
 
 The project depends on the Eigen library for fixed-size vectors and the
 templated EFT implementation.
 
 - Eigen library
 
-### 11.8 Summary Mapping
+### 8.8 Summary Mapping
 
 - robust pipeline -> Shewchuk + Geogram
 - SoS -> Edelsbrunner & Mucke
