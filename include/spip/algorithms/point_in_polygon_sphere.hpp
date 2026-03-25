@@ -51,16 +51,54 @@ Location point_in_polygon_sphere(const double* q,
 Location point_in_polygon_sphere(const std::array<double, 3>& q,
                                  const std::vector<std::array<double, 3>>& poly);
 
+template <std::size_t N>
+inline Location point_in_polygon_sphere(
+    const std::array<double, 3>& q,
+    const std::array<std::array<double, 3>, N>& poly) {
+  std::array<const double*, N> ptrs{};
+  for (std::size_t i = 0; i < N; ++i) {
+    ptrs[i] = poly[i].data();
+  }
+  return point_in_polygon_sphere(q.data(), ptrs.data(), ptrs.size());
+}
+
 Location point_in_polygon_sphere(
     const std::array<double, 3>& q,
     const std::vector<std::array<double, 3>>& poly,
     const std::vector<std::int64_t>& global_vertex_ids);
+
+template <std::size_t N>
+inline Location point_in_polygon_sphere(
+    const std::array<double, 3>& q,
+    const std::array<std::array<double, 3>, N>& poly,
+    const std::array<std::int64_t, N>& global_vertex_ids) {
+  std::array<const double*, N> ptrs{};
+  for (std::size_t i = 0; i < N; ++i) {
+    ptrs[i] = poly[i].data();
+  }
+  return point_in_polygon_sphere(
+      q.data(), ptrs.data(), global_vertex_ids.data(), ptrs.size());
+}
 
 Location point_in_polygon_sphere(
     const std::array<double, 3>& q,
     std::int64_t q_id,
     const std::vector<std::array<double, 3>>& poly,
     const std::vector<std::int64_t>& global_vertex_ids);
+
+template <std::size_t N>
+inline Location point_in_polygon_sphere(
+    const std::array<double, 3>& q,
+    std::int64_t q_id,
+    const std::array<std::array<double, 3>, N>& poly,
+    const std::array<std::int64_t, N>& global_vertex_ids) {
+  std::array<const double*, N> ptrs{};
+  for (std::size_t i = 0; i < N; ++i) {
+    ptrs[i] = poly[i].data();
+  }
+  return point_in_polygon_sphere(
+      q.data(), q_id, ptrs.data(), global_vertex_ids.data(), ptrs.size());
+}
 
 Location point_in_polygon_sphere(
     const std::array<double, 3>& q,
@@ -69,6 +107,23 @@ Location point_in_polygon_sphere(
     std::int64_t r_id,
     const std::vector<std::array<double, 3>>& poly,
     const std::vector<std::int64_t>& global_vertex_ids);
+
+template <std::size_t N>
+inline Location point_in_polygon_sphere(
+    const std::array<double, 3>& q,
+    std::int64_t q_id,
+    const std::array<double, 3>& R,
+    std::int64_t r_id,
+    const std::array<std::array<double, 3>, N>& poly,
+    const std::array<std::int64_t, N>& global_vertex_ids) {
+  std::array<const double*, N> ptrs{};
+  for (std::size_t i = 0; i < N; ++i) {
+    ptrs[i] = poly[i].data();
+  }
+  return point_in_polygon_sphere(
+      q.data(), q_id, R.data(), r_id, ptrs.data(), global_vertex_ids.data(),
+      ptrs.size());
+}
 
 Location point_in_polygon_sphere(const std::vector<double>& q,
                                  const std::vector<std::vector<double>>& poly);

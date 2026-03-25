@@ -281,9 +281,8 @@ predicate signs differs.
 
 Overload families:
 
-- robust pipeline: raw pointers, `std::array<double, 3>` with
-  `std::vector<std::array<double, 3>>`, and `std::vector<double>` with
-  `std::vector<std::vector<double>>`
+- robust pipeline: raw pointers, `std::array<std::array<double, 3>, N>`,
+  `std::vector<std::array<double, 3>>`, and `std::vector<std::vector<double>>`
 - EFT pipeline: `V3_T<T>*`, `std::vector<V3_T<T>>`, and
   `std::array<V3_T<T>, N>`
 
@@ -296,102 +295,34 @@ Overload families:
 - `Location::OnEdge`
 - `Location::OnVertex`
 
-### 9.3 Basic Usage (No Global ID)
+For complete API usage examples, including all overloads and robustness tiers,
+see `tests/test_pip_basic.cpp`.
+
+### 9.3 Representative Examples
 
 #### 9.3.1 Robust Pipeline (No Global ID)
 
-Raw pointer overload:
-
-```cpp
-#include "spip/algorithms/point_in_polygon_sphere.hpp"
-
-double q[3] = {0.5773502691896257, 0.5773502691896257, 0.5773502691896257};
-double poly_storage[3][3] = {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}};
-const double* poly[3] = {poly_storage[0], poly_storage[1], poly_storage[2]};
-
-const auto loc = spip::pip::point_in_polygon_sphere(q, poly, 3);
-```
-
-`std::vector` overload:
-
-```cpp
-#include <vector>
-
-#include "spip/algorithms/point_in_polygon_sphere.hpp"
-
-const std::vector<double> q = {0.5773502691896257, 0.5773502691896257,
-                               0.5773502691896257};
-const std::vector<std::vector<double>> poly = {
-    {1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}};
-
-const auto loc = spip::pip::point_in_polygon_sphere(q, poly);
-```
-
-`std::array` overload:
+A representative robust no-global-ID example:
 
 ```cpp
 #include <array>
-#include <vector>
 
 #include "spip/algorithms/point_in_polygon_sphere.hpp"
 
 const std::array<double, 3> q = {0.5773502691896257, 0.5773502691896257,
                                  0.5773502691896257};
-const std::vector<std::array<double, 3>> poly = {
-    {1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}};
+const std::array<std::array<double, 3>, 3> poly = {{
+    {1.0, 0.0, 0.0},
+    {0.0, 1.0, 0.0},
+    {0.0, 0.0, 1.0},
+}};
 
 const auto loc = spip::pip::point_in_polygon_sphere(q, poly);
 ```
 
-#### 9.3.2 EFT Pipeline (No Global ID)
+#### 9.3.2 Robust Pipeline (Tier 1)
 
-`V3_T<T>` pointer overload:
-
-```cpp
-#include <vector>
-
-#include "spip/algorithms/point_in_polygon_sphere.hpp"
-
-using spip::V3_T;
-
-const V3_T<double> q(0.5773502691896257, 0.5773502691896257, 0.5773502691896257);
-const V3_T<double> poly[3] = {
-    V3_T<double>(1.0, 0.0, 0.0),
-    V3_T<double>(0.0, 1.0, 0.0),
-    V3_T<double>(0.0, 0.0, 1.0),
-};
-
-const auto loc = spip::pip::point_in_polygon_sphere(q, poly, 3);
-```
-
-`std::vector<V3_T<T>>` overload:
-
-```cpp
-#include <vector>
-
-#include "spip/algorithms/point_in_polygon_sphere.hpp"
-
-using spip::V3_T;
-
-const V3_T<double> q(0.5773502691896257, 0.5773502691896257, 0.5773502691896257);
-const std::vector<V3_T<double>> poly = {
-    V3_T<double>(1.0, 0.0, 0.0),
-    V3_T<double>(0.0, 1.0, 0.0),
-    V3_T<double>(0.0, 0.0, 1.0),
-};
-
-const auto loc = spip::pip::point_in_polygon_sphere(q, poly);
-```
-
-### 9.4 Global-ID Usage (Robust Pipeline)
-
-Global-ID overloads enable Simulation of Simplicity for ray-vertex endpoint
-degeneracies.
-
-#### Tier 1: Full Global Robustness
-
-Caller provides polygon vertices, polygon IDs, `q` with `q_id`, and explicit
-`R` with `r_id`.
+A representative robust Tier 1 example:
 
 ```cpp
 #include <cstdint>
@@ -408,102 +339,12 @@ const auto loc =
     spip::pip::point_in_polygon_sphere(q, 40, R, 50, poly, vertex_ids, 3);
 ```
 
-#### Tier 2: Semi-Specified Robustness
+#### 9.3.3 EFT Pipeline
 
-Caller provides polygon vertices and IDs, plus `q` with `q_id`. The library
-infers `R` and assigns its ID internally.
-
-```cpp
-#include <array>
-#include <cstdint>
-#include <vector>
-
-#include "spip/algorithms/point_in_polygon_sphere.hpp"
-
-const std::array<double, 3> q = {0.5773502691896257, 0.5773502691896257,
-                                 0.5773502691896257};
-const std::vector<std::array<double, 3>> poly = {
-    {1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}};
-const std::vector<std::int64_t> vertex_ids = {10, 20, 30};
-
-const auto loc = spip::pip::point_in_polygon_sphere(q, 40, poly, vertex_ids);
-```
-
-#### Tier 3: Local/Internal Robustness
-
-Caller provides polygon vertices and IDs only. The library assigns IDs to `q`
-and `R`; this is deterministic but not globally controlled.
+A representative EFT example:
 
 ```cpp
 #include <array>
-#include <cstdint>
-#include <vector>
-
-#include "spip/algorithms/point_in_polygon_sphere.hpp"
-
-const std::array<double, 3> q = {0.5773502691896257, 0.5773502691896257,
-                                 0.5773502691896257};
-const std::vector<std::array<double, 3>> poly = {
-    {1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}};
-const std::vector<std::int64_t> vertex_ids = {10, 20, 30};
-
-const auto loc = spip::pip::point_in_polygon_sphere(q, poly, vertex_ids);
-```
-
-### 9.5 Global-ID Usage (EFT Pipeline)
-
-The EFT overloads follow the same three-tier structure.
-
-#### Tier 1: Full Global Robustness
-
-```cpp
-#include <cstdint>
-
-#include "spip/algorithms/point_in_polygon_sphere.hpp"
-
-using spip::V3_T;
-
-const V3_T<double> q(0.5773502691896257, 0.5773502691896257, 0.5773502691896257);
-const V3_T<double> R(-0.5773502691896257, -0.5773502691896257, -0.5773502691896257);
-const V3_T<double> poly[3] = {
-    V3_T<double>(1.0, 0.0, 0.0),
-    V3_T<double>(0.0, 1.0, 0.0),
-    V3_T<double>(0.0, 0.0, 1.0),
-};
-const std::int64_t vertex_ids[3] = {10, 20, 30};
-
-const auto loc =
-    spip::pip::point_in_polygon_sphere(q, 40, R, 50, poly, vertex_ids, 3);
-```
-
-#### Tier 2: Semi-Specified Robustness
-
-```cpp
-#include <cstdint>
-#include <vector>
-
-#include "spip/algorithms/point_in_polygon_sphere.hpp"
-
-using spip::V3_T;
-
-const V3_T<double> q(0.5773502691896257, 0.5773502691896257, 0.5773502691896257);
-const std::vector<V3_T<double>> poly = {
-    V3_T<double>(1.0, 0.0, 0.0),
-    V3_T<double>(0.0, 1.0, 0.0),
-    V3_T<double>(0.0, 0.0, 1.0),
-};
-const std::vector<std::int64_t> vertex_ids = {10, 20, 30};
-
-const auto loc = spip::pip::point_in_polygon_sphere(q, 40, poly, vertex_ids);
-```
-
-The library infers `R` and assigns its ID internally.
-
-#### Tier 3: Local/Internal Robustness
-
-```cpp
-#include <array>
-#include <cstdint>
 
 #include "spip/algorithms/point_in_polygon_sphere.hpp"
 
@@ -515,13 +356,9 @@ const std::array<V3_T<double>, 3> poly = {
     V3_T<double>(0.0, 1.0, 0.0),
     V3_T<double>(0.0, 0.0, 1.0),
 };
-const std::array<std::int64_t, 3> vertex_ids = {10, 20, 30};
 
-const auto loc = spip::pip::point_in_polygon_sphere(q, poly, vertex_ids);
+const auto loc = spip::pip::point_in_polygon_sphere(q, poly);
 ```
-
-The library assigns IDs to `q` and `R`; this is deterministic but not globally
-controlled.
 
 ### 9.6 Important Notes
 
@@ -534,16 +371,14 @@ controlled.
 
 ### 9.7 Link to Tests
 
-See [tests/test_pip_complicated.cpp](/global/u1/h/hyvchen/spherical-pip/tests/test_pip_complicated.cpp)
-for a more involved case, and
-[tests/test_pip_complicated_visualization.nb](/global/u1/h/hyvchen/spherical-pip/tests/test_pip_complicated_visualization.nb)
-for the corresponding visualization notebook.
+See `tests/test_pip_complicated.cpp` for a more involved case, and
+`tests/test_pip_complicated_visualization.nb` for the corresponding
+visualization notebook.
 
 
 ## 10. Tests and Visualization
 
-Tests live in [tests/](https://github.com/hongyuchen1030/Spherical-Point-In-Polygon/tree/main/tests) and in the
-repository test directory on GitHub:
+Tests live in [tests/](tests/) and in the repository test directory on GitHub:
 
 - https://github.com/hongyuchen1030/Spherical-Point-In-Polygon/tree/main/tests
 
@@ -555,7 +390,7 @@ Notable coverage includes:
 - a more complicated polygon/query configuration
 
 The Mathematica notebook
-[tests/test_pip_complicated_visualization.nb](https://github.com/hongyuchen1030/Spherical-Point-In-Polygon/tree/main/tests/test_pip_complicated_visualization.nb)
+[tests/test_pip_complicated_visualization.nb](tests/test_pip_complicated_visualization.nb)
 visualizes:
 
 - the polygon
@@ -591,7 +426,7 @@ implementation.
 Notes:
 
 - the vendored `predicates.c` is public domain
-- see [third_party/LICENSE_shewchuk.txt](https://github.com/hongyuchen1030/Spherical-Point-In-Polygon/tree/main/third_party/LICENSE_shewchuk.txt)
+- see [third_party/LICENSE_shewchuk.txt](third_party/LICENSE_shewchuk.txt)
 
 ### 11.3 Simulation of Simplicity (SoS)
 
