@@ -183,12 +183,95 @@ When global IDs are available, **Simulation of Simplicity (SoS)** resolves ray-v
 
 -----
 
-## 4\. Precision Pipelines
+## 4. Precision Pipelines
 
-| Pipeline | Technology | Description |
-| :--- | :--- | :--- |
-| **Pure Robust** | Shewchuk + Geogram | Uses adaptive predicates and exact multiprecision fallback. |
-| **EFT** | Ogita-Rump-Oishi | Uses Error-Free Transformations and compensated arithmetic. |
+| Pipeline        | Technology                | Description                                                                                                                    |
+| :-------------- | :------------------------ | :----------------------------------------------------------------------------------------------------------------------------- |
+| **Pure Robust** | Shewchuk + Geogram        | Uses adaptive orientation predicates with filtered evaluation and exact multiprecision fallback.                               |
+| **EFT**         | EFT + Shewchuk (fallback) | Uses compensated arithmetic (error-free transformations) for most evaluations, with robust predicate fallback near degeneracy. |
+
+The two pipelines implement **the same algorithmic logic**.
+They differ only in how predicate signs are evaluated.
+
+### Pure Robust Pipeline
+
+* Uses Shewchuk’s adaptive `orient3d`
+* Uses filtered quadruple product
+* Falls back to exact multiprecision (Geogram) when needed
+* Fully robust by construction
+
+Got it — here is the **corrected raw markdown text** with:
+
+* **no bullet references**
+* **only in-text citations**
+* clean scientific tone
+* no re-rendering issues
+
+---
+
+## 4. Precision Pipelines
+
+| Pipeline        | Technology                | Description                                                                                                                    |
+| :-------------- | :------------------------ | :----------------------------------------------------------------------------------------------------------------------------- |
+| **Pure Robust** | Shewchuk + Geogram        | Uses adaptive orientation predicates with filtered evaluation and exact multiprecision fallback.                               |
+| **EFT**         | EFT + Shewchuk (fallback) | Uses compensated arithmetic (error-free transformations) for most evaluations, with robust predicate fallback near degeneracy. |
+
+The two pipelines implement **the same algorithmic logic**.
+They differ only in how predicate signs are evaluated.
+
+### Pure Robust Pipeline
+
+* Uses Shewchuk’s adaptive `orient3d`
+* Uses filtered quadruple product
+* Falls back to exact multiprecision (Geogram) when needed
+* Fully robust by construction
+
+### EFT Pipeline
+
+The EFT pipeline uses compensated arithmetic to simulate higher working precision and reduce reliance on branching-based filtering. The implementation follows the general approach of error-free transformations and compensated evaluation as described in Chen et al. (2025) and Ogita et al. (2005).
+
+Core idea:
+
+* Use **error-free transformations (EFT)** to approximate double working precision
+* Keep computation largely **branch-free and SIMD-friendly**
+* Avoid frequent fallback to exact arithmetic in non-degenerate cases
+
+### Zero Detection and Fallback
+
+In the EFT pipeline:
+
+* A value is treated as zero if:
+
+  abs(value) < tol
+
+* The default tolerance is:
+
+  tol = 1e-8
+
+When a value falls within this tolerance:
+
+* The computation falls back to the robust predicate:
+
+  * Shewchuk adaptive `orient3d`
+  * with exact fallback when necessary
+
+This hybrid design:
+
+* preserves high performance in regular cases
+* maintains robustness near degeneracies
+
+### Design Summary
+
+* Robust pipeline: correctness-first, always safe
+* EFT pipeline: performance-oriented, with controlled fallback
+
+Both pipelines:
+
+* share identical geometric logic
+* differ only in numerical evaluation strategy
+
+References for the EFT design are given in Chen et al. (2025) and Ogita et al. (2005) later in the References and Acknowledgements section
+
 
 -----
 
