@@ -28,6 +28,61 @@ algorithms in more detail and provides broader algorithmic context:
 
 - https://egusphere.copernicus.org/preprints/2026/egusphere-2026-636/
 
+### Installation
+
+This library is designed to be used directly via headers.
+
+Add the include path:
+
+```text
+-I/path/to/Spherical-Point-In-Polygon/include
+```
+
+Then include:
+
+```cpp
+#include <spip/algorithms/point_in_polygon_sphere.hpp>
+```
+
+### Quick Start
+
+Minimal robust example without global IDs:
+
+```cpp
+#include <array>
+
+#include <spip/algorithms/point_in_polygon_sphere.hpp>
+
+const std::array<double, 3> q = {0.5773502691896257, 0.5773502691896257,
+                                 0.5773502691896257};
+const std::array<std::array<double, 3>, 3> poly = {{
+    {1.0, 0.0, 0.0},
+    {0.0, 1.0, 0.0},
+    {0.0, 0.0, 1.0},
+}};
+
+const auto loc = spip::pip::point_in_polygon_sphere(q, poly);
+```
+
+Minimal Tier 1 global-ID example:
+
+```cpp
+#include <cstdint>
+
+#include <spip/algorithms/point_in_polygon_sphere.hpp>
+
+double q[3] = {0.5773502691896257, 0.5773502691896257, 0.5773502691896257};
+double R[3] = {-0.5773502691896257, -0.5773502691896257, -0.5773502691896257};
+double poly_storage[3][3] = {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}};
+const double* poly[3] = {poly_storage[0], poly_storage[1], poly_storage[2]};
+const std::int64_t vertex_ids[3] = {10, 20, 30};
+
+const auto loc =
+    spip::pip::point_in_polygon_sphere(q, 40, R, 50, poly, vertex_ids, 3);
+```
+
+For complete API usage examples, see:
+[tests/test_library_usage.cpp](https://github.com/hongyuchen1030/Spherical-Point-In-Polygon/blob/main/tests/test_library_usage.cpp)
 
 ## 2. Core Algorithm (Spherical PIP)
 
@@ -267,116 +322,7 @@ Constraints:
 - internal IDs are always nonnegative
 
 
-## 9. API Reference and Usage
-
-### 9.1 Precision Pipelines
-
-The library provides two precision pipelines:
-
-- robust pipeline: the default double-based implementation
-- EFT pipeline: templated evaluation using `spip::V3_T<T>` and compensated arithmetic
-
-The algorithm is identical in both pipelines. Only the numerical evaluation of
-predicate signs differs.
-
-Overload families:
-
-- robust pipeline: raw pointers, `std::array<std::array<double, 3>, N>`,
-  `std::vector<std::array<double, 3>>`, and `std::vector<std::vector<double>>`
-- EFT pipeline: `V3_T<T>*`, `std::vector<V3_T<T>>`, and
-  `std::array<V3_T<T>, N>`
-
-### 9.2 Return Type
-
-`spip::pip::Location` has four values:
-
-- `Location::Inside`
-- `Location::Outside`
-- `Location::OnEdge`
-- `Location::OnVertex`
-
-For complete API usage examples, including all overloads and robustness tiers,
-see `tests/test_pip_basic.cpp`.
-
-### 9.3 Representative Examples
-
-#### 9.3.1 Robust Pipeline (No Global ID)
-
-A representative robust no-global-ID example:
-
-```cpp
-#include <array>
-
-#include "spip/algorithms/point_in_polygon_sphere.hpp"
-
-const std::array<double, 3> q = {0.5773502691896257, 0.5773502691896257,
-                                 0.5773502691896257};
-const std::array<std::array<double, 3>, 3> poly = {{
-    {1.0, 0.0, 0.0},
-    {0.0, 1.0, 0.0},
-    {0.0, 0.0, 1.0},
-}};
-
-const auto loc = spip::pip::point_in_polygon_sphere(q, poly);
-```
-
-#### 9.3.2 Robust Pipeline (Tier 1)
-
-A representative robust Tier 1 example:
-
-```cpp
-#include <cstdint>
-
-#include "spip/algorithms/point_in_polygon_sphere.hpp"
-
-double q[3] = {0.5773502691896257, 0.5773502691896257, 0.5773502691896257};
-double R[3] = {-0.5773502691896257, -0.5773502691896257, -0.5773502691896257};
-double poly_storage[3][3] = {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}};
-const double* poly[3] = {poly_storage[0], poly_storage[1], poly_storage[2]};
-const std::int64_t vertex_ids[3] = {10, 20, 30};
-
-const auto loc =
-    spip::pip::point_in_polygon_sphere(q, 40, R, 50, poly, vertex_ids, 3);
-```
-
-#### 9.3.3 EFT Pipeline
-
-A representative EFT example:
-
-```cpp
-#include <array>
-
-#include "spip/algorithms/point_in_polygon_sphere.hpp"
-
-using spip::V3_T;
-
-const V3_T<double> q(0.5773502691896257, 0.5773502691896257, 0.5773502691896257);
-const std::array<V3_T<double>, 3> poly = {
-    V3_T<double>(1.0, 0.0, 0.0),
-    V3_T<double>(0.0, 1.0, 0.0),
-    V3_T<double>(0.0, 0.0, 1.0),
-};
-
-const auto loc = spip::pip::point_in_polygon_sphere(q, poly);
-```
-
-### 9.6 Important Notes
-
-- global IDs must be unique
-- IDs must be non-negative integers
-- vertex IDs are never modified
-- `q` and `R` IDs may be internally assigned
-- for full robustness, use Tier 1
-- `s_AB_R == 0` triggers an error for an invalid face/ray configuration
-
-### 9.7 Link to Tests
-
-See `tests/test_pip_complicated.cpp` for a more involved case, and
-`tests/test_pip_complicated_visualization.nb` for the corresponding
-visualization notebook.
-
-
-## 10. Tests and Visualization
+## 9. Tests and Visualization
 
 Tests live in [tests/](tests/) and in the repository test directory on GitHub:
 
@@ -400,7 +346,7 @@ visualizes:
 That notebook is the visualization companion for the complicated PIP test case.
 
 
-## 11. References and Acknowledgements
+## 10. References and Acknowledgements
 
 ### 11.1 Associated Paper
 
