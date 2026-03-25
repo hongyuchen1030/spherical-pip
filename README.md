@@ -34,7 +34,7 @@ This library is header-only. No installation step or package manager is required
 
 3.  **Include the header:**
     ```cpp
-    #include \<spip/algorithms/point\_in\_polygon\_sphere.hpp\>
+    include <spip/algorithms/point_in_polygon_sphere.hpp>
     ```
 
 5.  **Compiler Path:** Add the `include/` directory to your include path (C++17 required).
