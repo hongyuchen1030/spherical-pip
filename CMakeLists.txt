@@ -54,11 +54,11 @@ endif()
 if(SPIP_BUILD_TESTS)
   enable_testing()
 
-  add_executable(spip_test_pip
-    tests/test_pip_basic.cpp
+  add_executable(spip_test_library_usage
+    tests/test_library_usage.cpp
   )
-  target_link_libraries(spip_test_pip PRIVATE spip)
-  add_test(NAME spip_test_pip COMMAND spip_test_pip)
+  target_link_libraries(spip_test_library_usage PRIVATE spip)
+  add_test(NAME spip_test_library_usage COMMAND spip_test_library_usage)
 
   add_executable(spip_test_psm_compile
     tests/test_psm_compile.cpp
