@@ -40,9 +40,13 @@ namespace {
     return ptrs;
   }
 
-// Helper: Validate polygon and ID sizes for all container types
-inline void validate_poly_and_ids(std::size_t poly_size,
-                                  std::size_t id_size = SIZE_MAX) {
+// Helper: Validate polygon, ID, and query/endpoint sizes
+//         for all container types
+inline void validate_poly_and_query_sizes(
+    std::size_t poly_size,
+    std::size_t id_size = SIZE_MAX,
+    std::size_t q_size = SIZE_MAX,
+    std::size_t r_size = SIZE_MAX) {
   if (poly_size < 3) {
     throw std::invalid_argument(
       "point_in_polygon_sphere: polygon must have >= 3 vertices");
@@ -50,6 +54,14 @@ inline void validate_poly_and_ids(std::size_t poly_size,
   if (id_size != SIZE_MAX && poly_size != id_size) {
     throw std::invalid_argument(
       "point_in_polygon_sphere: global_vertex_ids size must match poly size");
+  }
+  if (q_size != SIZE_MAX && q_size != 3) {
+    throw std::invalid_argument(
+      "point_in_polygon_sphere: q must have size 3");
+  }
+  if (r_size != SIZE_MAX && r_size != 3) {
+    throw std::invalid_argument(
+      "point_in_polygon_sphere: R must have size 3");
   }
 }
 
@@ -347,17 +359,14 @@ Location point_in_polygon_sphere(const double* q,
 
 Location point_in_polygon_sphere(const std::array<double, 3>& q,
                                  const std::vector<std::array<double, 3>>& poly) {
-  validate_poly_and_ids(poly.size());
+  validate_poly_and_query_sizes(poly.size(), SIZE_MAX, 3);
   auto ptrs = to_ptr_vector(poly);
   return point_in_polygon_sphere(q.data(), ptrs.data(), ptrs.size());
 }
 
 Location point_in_polygon_sphere(const std::vector<double>& q,
                                  const std::vector<std::vector<double>>& poly) {
-  if (q.size() != 3) {
-    throw std::invalid_argument("point_in_polygon_sphere: q must have size 3");
-  }
-  validate_poly_and_ids(poly.size());
+  validate_poly_and_query_sizes(poly.size(), SIZE_MAX, q.size());
   auto ptrs = to_ptr_vector(poly);
   return point_in_polygon_sphere(q.data(), ptrs.data(), ptrs.size());
 }
@@ -436,7 +445,7 @@ Location point_in_polygon_sphere(
     const std::array<double, 3>& q,
     const std::vector<std::array<double, 3>>& poly,
     const std::vector<std::int64_t>& global_vertex_ids) {
-  validate_poly_and_ids(poly.size(), global_vertex_ids.size());
+  validate_poly_and_query_sizes(poly.size(), global_vertex_ids.size());
   auto ptrs = to_ptr_vector(poly);
   return point_in_polygon_sphere(
       q.data(), ptrs.data(), global_vertex_ids.data(), ptrs.size());
@@ -447,7 +456,7 @@ Location point_in_polygon_sphere(
     std::int64_t q_id,
     const std::vector<std::array<double, 3>>& poly,
     const std::vector<std::int64_t>& global_vertex_ids) {
-  validate_poly_and_ids(poly.size(), global_vertex_ids.size());
+  validate_poly_and_query_sizes(poly.size(), global_vertex_ids.size());
   auto ptrs = to_ptr_vector(poly);
   return point_in_polygon_sphere(
       q.data(), q_id, ptrs.data(), global_vertex_ids.data(), ptrs.size());
@@ -460,7 +469,7 @@ Location point_in_polygon_sphere(
     std::int64_t r_id,
     const std::vector<std::array<double, 3>>& poly,
     const std::vector<std::int64_t>& global_vertex_ids) {
-  validate_poly_and_ids(poly.size(), global_vertex_ids.size());
+  validate_poly_and_query_sizes(poly.size(), global_vertex_ids.size());
   auto ptrs = to_ptr_vector(poly);
   return point_in_polygon_sphere(q.data(),
                                  q_id,
@@ -475,10 +484,7 @@ Location point_in_polygon_sphere(
     const std::vector<double>& q,
     const std::vector<std::vector<double>>& poly,
     const std::vector<std::int64_t>& global_vertex_ids) {
-  if (q.size() != 3) {
-    throw std::invalid_argument("point_in_polygon_sphere: q must have size 3");
-  }
-  validate_poly_and_ids(poly.size(), global_vertex_ids.size());
+  validate_poly_and_query_sizes(poly.size(), global_vertex_ids.size(), q.size());
   auto ptrs = to_ptr_vector(poly);
   return point_in_polygon_sphere(
       q.data(), ptrs.data(), global_vertex_ids.data(), ptrs.size());
@@ -489,10 +495,8 @@ Location point_in_polygon_sphere(
     std::int64_t q_id,
     const std::vector<std::vector<double>>& poly,
     const std::vector<std::int64_t>& global_vertex_ids) {
-  if (q.size() != 3) {
-    throw std::invalid_argument("point_in_polygon_sphere: q must have size 3");
-  }
-  validate_poly_and_ids(poly.size(), global_vertex_ids.size());
+  validate_poly_and_query_sizes(
+    poly.size(), global_vertex_ids.size(), q.size());
   auto ptrs = to_ptr_vector(poly);
   return point_in_polygon_sphere(
       q.data(), q_id, ptrs.data(), global_vertex_ids.data(), ptrs.size());
@@ -505,13 +509,8 @@ Location point_in_polygon_sphere(
     std::int64_t r_id,
     const std::vector<std::vector<double>>& poly,
     const std::vector<std::int64_t>& global_vertex_ids) {
-  if (q.size() != 3) {
-    throw std::invalid_argument("point_in_polygon_sphere: q must have size 3");
-  }
-  if (R.size() != 3) {
-    throw std::invalid_argument("point_in_polygon_sphere: R must have size 3");
-  }
-  validate_poly_and_ids(poly.size(), global_vertex_ids.size());
+  validate_poly_and_query_sizes(
+    poly.size(), global_vertex_ids.size(), q.size(), R.size());
   auto ptrs = to_ptr_vector(poly);
   return point_in_polygon_sphere(q.data(),
                                  q_id,
