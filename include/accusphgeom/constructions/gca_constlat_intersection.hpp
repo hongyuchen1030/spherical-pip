@@ -4,25 +4,22 @@
 #include <stdexcept>
 
 #include "accusphgeom/constructions/accucross.hpp"
+#include "accusphgeom/predicates/on_minor_arc.hpp"
 
 namespace accusphgeom::constructions {
 
 template <typename T>
-struct GcaConstLatIntersection {
-  numeric::Vec3<T> point{};
+struct GcaConstLatIntersections {
+  numeric::Vec3<T> point_pos{};
+  numeric::Vec3<T> point_neg{};
   numeric::Vec3<T> normal_high{};
   numeric::Vec3<T> normal_low{};
 };
 
 template <typename T>
-inline GcaConstLatIntersection<T> gca_constlat_intersection(
-    const numeric::Vec3<T>& a, const numeric::Vec3<T>& b, T z0,
-    int branch_sign = 1) {
-  if (branch_sign != 1 && branch_sign != -1) {
-    throw std::invalid_argument(
-        "gca_constlat_intersection: branch_sign must be +1 or -1");
-  }
-
+inline GcaConstLatIntersections<T> accux_constlat(const numeric::Vec3<T>& a,
+                                                  const numeric::Vec3<T>& b,
+                                                  T z0) {
   const auto normal = accucross(a, b);
   const auto s2 = numeric::sum_of_squares_c<T, 2>(
       {normal.hi[0], normal.hi[1]}, {normal.lo[0], normal.lo[1]});
@@ -45,19 +42,49 @@ inline GcaConstLatIntersection<T> gca_constlat_intersection(
         "gca_constlat_intersection: degenerate great-circle normal");
   }
 
-  const auto x_num = numeric::compensated_dot_product(
-      std::array<T, 2>{nx * nz, -static_cast<T>(branch_sign) * ny},
+  const auto x_num_pos = numeric::compensated_dot_product(
+      std::array<T, 2>{nx * nz, -ny},
       std::array<T, 2>{z0, planar});
-  const auto y_num = numeric::compensated_dot_product(
-      std::array<T, 2>{ny * nz, static_cast<T>(branch_sign) * nx},
+  const auto y_num_pos = numeric::compensated_dot_product(
+      std::array<T, 2>{ny * nz, nx},
+      std::array<T, 2>{z0, planar});
+  const auto x_num_neg = numeric::compensated_dot_product(
+      std::array<T, 2>{nx * nz, ny},
+      std::array<T, 2>{z0, planar});
+  const auto y_num_neg = numeric::compensated_dot_product(
+      std::array<T, 2>{ny * nz, -nx},
       std::array<T, 2>{z0, planar});
 
-  GcaConstLatIntersection<T> out{};
+  GcaConstLatIntersections<T> out{};
   out.normal_high = normal.hi;
   out.normal_low = normal.lo;
-  out.point = {-(x_num.hi + x_num.lo) / denom, -(y_num.hi + y_num.lo) / denom,
-               z0};
+  out.point_pos = {-(x_num_pos.hi + x_num_pos.lo) / denom,
+                   -(y_num_pos.hi + y_num_pos.lo) / denom, z0};
+  out.point_neg = {-(x_num_neg.hi + x_num_neg.lo) / denom,
+                   -(y_num_neg.hi + y_num_neg.lo) / denom, z0};
   return out;
+}
+
+template <typename T>
+inline numeric::Vec3<T> gca_constlat_intersection(const numeric::Vec3<T>& a,
+                                                  const numeric::Vec3<T>& b,
+                                                  T z0) {
+  const auto candidates = accux_constlat(a, b, z0);
+  const bool pos_on_arc = predicates::on_minor_arc(candidates.point_pos, a, b);
+  const bool neg_on_arc = predicates::on_minor_arc(candidates.point_neg, a, b);
+
+  if (pos_on_arc && !neg_on_arc) {
+    return candidates.point_pos;
+  }
+  if (neg_on_arc && !pos_on_arc) {
+    return candidates.point_neg;
+  }
+  if (pos_on_arc && neg_on_arc) {
+    throw std::domain_error(
+        "gca_constlat_intersection: both intersections lie on the minor arc");
+  }
+  throw std::domain_error(
+      "gca_constlat_intersection: no intersection lies on the minor arc");
 }
 
 }  // namespace accusphgeom::constructions

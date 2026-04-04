@@ -1,4 +1,5 @@
 #include <accusphgeom/algorithms/point_in_polygon_sphere.hpp>
+#include <accusphgeom/predicates/on_minor_arc.hpp>
 
 #include <array>
 #include <cmath>
@@ -78,33 +79,6 @@ inline bool equal3(const double* a, const double* b) {
   return (a[0] == b[0]) && (a[1] == b[1]) && (a[2] == b[2]);
 }
 
-// Return true iff q lies on the closed non-antipodal minor arc AB.
-//
-// The test consists of two conditions:
-//
-// (1) q lies on the supporting great circle of AB:
-//       orient(A, B, q) = 0
-//
-// (2) q lies between A and B on the minor arc. Equivalently, the normals
-//     A x q and q x B do not point in opposite directions:
-//       (A x q) . (q x B) >= 0
-//
-// The second condition is evaluated as the scalar quadruple product
-// quadruple3d(A, q, q, B).
-//
-// Preconditions:
-// - q, A, and B are valid pointers to 3 coordinates
-// - vertex coincidence q == A or q == B has already been excluded
-inline bool on_minor_arc(const double* q, const double* A, const double* B) {
-  if (equal3(A, B)) {
-    return false;
-  }
-  if (accusphgeom::predicates::orient3d_on_sphere(A, B, q) != Sign::Zero) {
-    return false;
-  }
-  return accusphgeom::predicates::quadruple3d(A, q, q, B) != Sign::Negative;
-}
-
 // Validate the raw-pointer polygon input and test whether q matches a polygon
 // vertex exactly. The function returns true iff q coincides with some poly[i].
 inline bool validate_polygon_and_check_vertex(const double* q,
@@ -139,7 +113,7 @@ inline bool point_on_polygon_edge_exact(const double* q,
   const double* A = poly[n - 1];
   for (std::size_t i = 0; i < n; ++i) {
     const double* B = poly[i];
-    if (on_minor_arc(q, A, B)) {
+    if (accusphgeom::predicates::on_minor_arc(q, A, B)) {
       return true;
     }
     A = B;
