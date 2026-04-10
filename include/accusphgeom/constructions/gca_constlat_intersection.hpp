@@ -70,8 +70,11 @@ inline numeric::Vec3<T> gca_constlat_intersection(const numeric::Vec3<T>& a,
                                                   const numeric::Vec3<T>& b,
                                                   T z0) {
   const auto candidates = accux_constlat(a, b, z0);
-  const bool pos_on_arc = predicates::on_minor_arc(candidates.point_pos, a, b);
-  const bool neg_on_arc = predicates::on_minor_arc(candidates.point_neg, a, b);
+  const T arc_tolerance = T(1e-8);
+  const bool pos_on_arc =
+      predicates::on_minor_arc(candidates.point_pos, a, b, arc_tolerance);
+  const bool neg_on_arc =
+      predicates::on_minor_arc(candidates.point_neg, a, b, arc_tolerance);
 
   if (pos_on_arc && !neg_on_arc) {
     return candidates.point_pos;

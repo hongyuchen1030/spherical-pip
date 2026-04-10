@@ -1,19 +1,23 @@
-#include <cmath>
 #include <cstdint>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
-#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <vector>
 
 #include "accusphgeom/constructions/gca_gca_intersection.hpp"
+#include "test_helpers.hpp"
 
 namespace {
 
 using accusphgeom::constructions::gca_gca_intersection;
 using accusphgeom::numeric::Vec3;
+using test_sigexp_helpers::norm;
+using test_sigexp_helpers::parse_i64;
+using test_sigexp_helpers::parse_vec3_sigexp;
+using test_sigexp_helpers::split_csv_line;
+using test_sigexp_helpers::subtract;
 
 struct Row {
   std::int64_t pair_id{};
@@ -23,37 +27,6 @@ struct Row {
   Vec3<double> b1{};
   Vec3<double> baseline{};
 };
-
-inline double fromSigExp(std::int64_t sig, std::int64_t exp) {
-  return std::ldexp(static_cast<double>(sig), static_cast<int>(exp));
-}
-
-std::vector<std::string> split_csv_line(const std::string& line) {
-  std::vector<std::string> fields;
-  std::stringstream ss(line);
-  std::string field;
-  while (std::getline(ss, field, ',')) {
-    fields.push_back(field);
-  }
-  return fields;
-}
-
-std::int64_t parse_i64(const std::string& text) {
-  std::size_t pos = 0;
-  const std::int64_t value = std::stoll(text, &pos);
-  if (pos != text.size()) {
-    throw std::runtime_error("invalid integer field: " + text);
-  }
-  return value;
-}
-
-Vec3<double> parse_vec3_sigexp(const std::vector<std::string>& fields, std::size_t start) {
-  return {
-      fromSigExp(parse_i64(fields.at(start)), parse_i64(fields.at(start + 1))),
-      fromSigExp(parse_i64(fields.at(start + 2)), parse_i64(fields.at(start + 3))),
-      fromSigExp(parse_i64(fields.at(start + 4)), parse_i64(fields.at(start + 5))),
-  };
-}
 
 std::vector<Row> read_rows(const std::string& path) {
   std::ifstream in(path);
@@ -86,14 +59,6 @@ std::vector<Row> read_rows(const std::string& path) {
     rows.push_back(row);
   }
   return rows;
-}
-
-Vec3<double> subtract(const Vec3<double>& lhs, const Vec3<double>& rhs) {
-  return {lhs[0] - rhs[0], lhs[1] - rhs[1], lhs[2] - rhs[2]};
-}
-
-double norm(const Vec3<double>& v) {
-  return std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
 }
 
 }  // namespace
