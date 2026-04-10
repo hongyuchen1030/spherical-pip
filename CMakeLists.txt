@@ -77,4 +77,22 @@ if(ACCUSPHGEOM_BUILD_TESTS)
   )
   target_link_libraries(test_pip_complicated PRIVATE AccuSphGeom)
   add_test(NAME test_pip_complicated COMMAND test_pip_complicated)
+
+  add_executable(test_gca_gca_intersection_baseline
+    tests/test_gca_gca_intersection_baseline.cpp
+  )
+  target_link_libraries(test_gca_gca_intersection_baseline PRIVATE AccuSphGeom)
+  target_compile_definitions(test_gca_gca_intersection_baseline
+    PRIVATE ACCUSPHGEOM_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
+  )
+  add_test(NAME test_gca_gca_intersection_baseline COMMAND test_gca_gca_intersection_baseline)
+
+  add_executable(test_gca_constlat_intersection_baseline
+    tests/test_gca_constlat_intersection_baseline.cpp
+  )
+  target_link_libraries(test_gca_constlat_intersection_baseline PRIVATE AccuSphGeom)
+  target_compile_definitions(test_gca_constlat_intersection_baseline
+    PRIVATE ACCUSPHGEOM_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
+  )
+  add_test(NAME test_gca_constlat_intersection_baseline COMMAND test_gca_constlat_intersection_baseline)
 endif()
