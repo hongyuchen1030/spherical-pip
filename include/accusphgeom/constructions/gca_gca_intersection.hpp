@@ -1,5 +1,5 @@
 #pragma once
-
+#include <type_traits>
 #include <array>
 #include <cmath>
 #include <stdexcept>
@@ -23,10 +23,10 @@ struct GcaGcaIntersections {
   numeric::Vec3<T> point_neg{};
 };
 
-template <typename T>
+template <typename T, typename StatusT>
 struct GcaGcaTryResult {
   numeric::Vec3<T> point{};
-  int status{};  // 0 ok, 1 both valid, 2 none valid
+  StatusT status{};  // 0 ok, 1 both valid, 2 none valid
 };
 
 template <typename T>
@@ -50,39 +50,42 @@ inline GcaGcaIntersections<T> accux_gca(const numeric::Vec3<T>& a0,
 }
 
 template <typename T>
-inline GcaGcaTryResult<T> try_gca_gca_intersection(
-    const numeric::Vec3<T>& a0,
-    const numeric::Vec3<T>& a1,
-    const numeric::Vec3<T>& b0,
-    const numeric::Vec3<T>& b1) {
+inline auto try_gca_gca_intersection(const numeric::Vec3<T>& a0,
+                                     const numeric::Vec3<T>& a1,
+                                     const numeric::Vec3<T>& b0,
+                                     const numeric::Vec3<T>& b1) {
   const auto candidates = accux_gca(a0, a1, b0, b1);
-  constexpr T minor_arc_tolerance =
-      internal::gca_gca_minor_arc_tol<T>;
-  const bool pos_finite =
-      std::isfinite(candidates.point_pos[0]) &
-      std::isfinite(candidates.point_pos[1]) &
-      std::isfinite(candidates.point_pos[2]);
-  const bool neg_finite =
-      std::isfinite(candidates.point_neg[0]) &
-      std::isfinite(candidates.point_neg[1]) &
-      std::isfinite(candidates.point_neg[2]);
-  const bool pos_on_arc_a =
-      predicates::on_minor_arc_tol_ptr(candidates.point_pos, a0, a1,
-                                       minor_arc_tolerance);
-  const bool pos_on_arc_b =
-      predicates::on_minor_arc_tol_ptr(candidates.point_pos, b0, b1,
-                                       minor_arc_tolerance);
-  const bool neg_on_arc_a =
-      predicates::on_minor_arc_tol_ptr(candidates.point_neg, a0, a1,
-                                       minor_arc_tolerance);
-  const bool neg_on_arc_b =
-      predicates::on_minor_arc_tol_ptr(candidates.point_neg, b0, b1,
-                                       minor_arc_tolerance);
-  const int pos_valid = pos_finite & pos_on_arc_a & pos_on_arc_b;
-  const int neg_valid = neg_finite & neg_on_arc_a & neg_on_arc_b;
+  constexpr T tol = internal::gca_gca_minor_arc_tol<T>;
 
-  const T pos_mask = static_cast<T>(pos_valid & !neg_valid);
-  const T neg_mask = static_cast<T>(neg_valid & !pos_valid);
+  const auto pos_finite =
+      isfinite_mask(candidates.point_pos[0]) &
+      isfinite_mask(candidates.point_pos[1]) &
+      isfinite_mask(candidates.point_pos[2]);
+
+  const auto neg_finite =
+      isfinite_mask(candidates.point_neg[0]) &
+      isfinite_mask(candidates.point_neg[1]) &
+      isfinite_mask(candidates.point_neg[2]);
+
+  const auto pos_on_arc_a =
+      pos_finite &
+      predicates::on_minor_arc_tol_ptr(candidates.point_pos, a0, a1, tol);
+  const auto pos_on_arc_b =
+      pos_finite &
+      predicates::on_minor_arc_tol_ptr(candidates.point_pos, b0, b1, tol);
+
+  const auto neg_on_arc_a =
+      neg_finite &
+      predicates::on_minor_arc_tol_ptr(candidates.point_neg, a0, a1, tol);
+  const auto neg_on_arc_b =
+      neg_finite &
+      predicates::on_minor_arc_tol_ptr(candidates.point_neg, b0, b1, tol);
+
+  const auto pos_valid = pos_finite & pos_on_arc_a & pos_on_arc_b;
+  const auto neg_valid = neg_finite & neg_on_arc_a & neg_on_arc_b;
+
+  const auto pos_mask = pos_valid & ~neg_valid;
+  const auto neg_mask = neg_valid & ~pos_valid;
 
   numeric::Vec3<T> out{};
   out[0] = pos_mask * candidates.point_pos[0] +
@@ -92,11 +95,12 @@ inline GcaGcaTryResult<T> try_gca_gca_intersection(
   out[2] = pos_mask * candidates.point_pos[2] +
            neg_mask * candidates.point_neg[2];
 
-  const int both = pos_valid & neg_valid;
-  const int none = (!pos_valid) & (!neg_valid);
-  const int status = both + 2 * none;
+  const auto both = pos_valid & neg_valid;
+  const auto none = (~pos_valid) & (~neg_valid);
+  const auto status = both + (none + none);
 
-  return {out, status};
+  using StatusT = decltype(status);
+  return GcaGcaTryResult<T, StatusT>{out, status};
 }
 
 template <typename T>
@@ -104,6 +108,10 @@ inline numeric::Vec3<T> gca_gca_intersection(const numeric::Vec3<T>& a0,
                                              const numeric::Vec3<T>& a1,
                                              const numeric::Vec3<T>& b0,
                                              const numeric::Vec3<T>& b1) {
+  static_assert(std::is_arithmetic_v<T>,
+                "gca_gca_intersection is scalar-only; use "
+                "try_gca_gca_intersection for packed/SIMD types.");
+
   const auto result = try_gca_gca_intersection(a0, a1, b0, b1);
 
   if (result.status == 0) return result.point;
