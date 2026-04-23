@@ -22,12 +22,6 @@ struct GcaConstLatTryResult {
 };
 
 template <typename T>
-struct GcaConstLatTryResult {
-  numeric::Vec3<T> point{};
-  int status{}; // 0 = ok, 1 = both valid, 2 = none valid
-};
-
-template <typename T>
 inline GcaConstLatIntersections<T> accux_constlat(const numeric::Vec3<T>& a,
                                                   const numeric::Vec3<T>& b,
                                                   T z0) {
