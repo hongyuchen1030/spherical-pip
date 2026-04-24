@@ -11,6 +11,7 @@ namespace {
 
 using accusphgeom::constructions::accux_constlat;
 using accusphgeom::numeric::Vec3;
+using accusphgeom::constructions::try_gca_constlat_intersection;
 
 constexpr int N = 4;
 using Pack = EigenPack<N>;
@@ -77,5 +78,25 @@ int main() {
   }
 
   std::cout << "[PASS] accux_constlat Eigen-pack test passed.\n";
+
+
+  const auto packed_try = try_gca_constlat_intersection(a, b, zz);
+
+  for (int i = 0; i < N; ++i) {
+    Vec3<double> ai{ptsA(i, 0), ptsA(i, 1), ptsA(i, 2)};
+    Vec3<double> bi{ptsB(i, 0), ptsB(i, 1), ptsB(i, 2)};
+    const auto scalar_try = try_gca_constlat_intersection(ai, bi, z0(i));
+
+    if (!close(packed_try.point[0](i), scalar_try.point[0]) ||
+        !close(packed_try.point[1](i), scalar_try.point[1]) ||
+        !close(packed_try.point[2](i), scalar_try.point[2]) ||
+        packed_try.status(i) != scalar_try.status) {
+      std::cerr << "[FAIL] lane " << i
+                << " try_gca_constlat_intersection mismatch\n";
+      return EXIT_FAILURE;
+    }
+  }
+
+  std::cout << "[PASS] gca_constlat Eigen-pack tests passed.\n";
   return EXIT_SUCCESS;
 }
